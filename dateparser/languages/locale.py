@@ -138,7 +138,10 @@ class Locale(object):
             word = word.lower()
             for pattern, replacement in relative_translations.items():
                 if pattern.match(word):
+                    print(pattern.match(word))
+                    print(replacement)
                     date_string_tokens[i] = pattern.sub(replacement, word)
+                    print(date_string_tokens)
             else:
                 if word in dictionary:
                     date_string_tokens[i] = dictionary[word] or ''

@@ -11,7 +11,7 @@ from dateparser.utils import set_correct_day_from_settings, \
     get_last_day_of_month
 from dateparser.utils.strptime import strptime
 
-
+FUTURE_OR_PAST = re.compile(r'next|last')
 NSP_COMPATIBLE = re.compile(r'\D+')
 MERIDIAN = re.compile(r'am|pm')
 MICROSECOND = re.compile(r'\d{1,6}')
@@ -58,6 +58,11 @@ def resolve_date_order(order, lst=None):
 
     return chart_list[order] if lst else chart[order]
 
+def get_time_delta(period):
+    if period == 'day':
+        return timedelta(weeks=1)
+    if period == 'month':
+        return timedelta(years=1)
 
 def parse(datestring, settings):
     exceptions = []
@@ -187,12 +192,21 @@ class _parser(object):
         'year': ['%y', '%Y'],
     }
 
+    shortform = {
+        'd': 'day',
+        'm': 'month',
+        'y': 'year'
+    }
+
     def __init__(self, tokens, settings):
         self.settings = settings
         self.tokens = list(tokens)
         self.filtered_tokens = [t for t in self.tokens if t[1] <= 1]
 
         self.unset_tokens = []
+
+        self.next_modifiers = []
+        self.last_modifiers = []
 
         self.day = None
         self.month = None
@@ -418,6 +432,10 @@ class _parser(object):
                 if self.now.time() > dateobj.time():
                     dateobj = dateobj + timedelta(days=1)
 
+        for period in self.next_modifiers:
+            dateobj = dateobj + get_time_delta(period)
+        for period in self.last_modifiers:
+            dateobj = dateobj - get_time_delta(period)
         return dateobj
 
     def _correct_for_day(self, dateobj):
@@ -486,6 +504,13 @@ class _parser(object):
 
         def parse_alpha(token, skip_component=None):
             type = 1
+
+            if(FUTURE_OR_PAST.search(token)):
+                if(token[:-1] == 'next'):
+                    self.next_modifiers.append(self.shortform[token[-1]])
+                else:
+                    self.last_modifiers.append(self.shortform[token[-1]])
+                return []
 
             for component, directives in self.alpha_directives.items():
                 if skip_component == component:

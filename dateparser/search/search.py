@@ -194,6 +194,7 @@ class DateSearchWithDetection:
         if languages:
             self.language_detector = FullTextLanguageDetector(languages=languages)
         else:
+            print("I think here")
             self.language_detector = FullTextLanguageDetector(list(self.available_language_map.values()))
 
         return self.language_detector._best_language(text)
